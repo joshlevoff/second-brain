@@ -1,4 +1,4 @@
-import CardList from "@/app/(app)/capture/_components/card-list";
+import CardList from "@/app/(app)/_components/card-list";
 import CaptureForm from "@/app/(app)/capture/_components/capture-form";
 import type { CardRow } from "@/app/actions/cards";
 import { createClient } from "@/lib/supabase/server";
@@ -28,7 +28,10 @@ export default async function CapturePage() {
           {cards?.length ?? 0}{" "}
           {(cards?.length ?? 0) === 1 ? "card" : "cards"}
         </h2>
-        <CardList cards={cards ?? []} />
+        <CardList
+          cards={cards ?? []}
+          emptyMessage="No cards yet. Add your first one above."
+        />
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 import type { CardRow } from "@/app/actions/cards";
 
-const CATEGORY_STYLES: Record<string, string> = {
+export const CATEGORY_STYLES: Record<string, string> = {
   Unprocessed: "bg-zinc-800 text-zinc-400",
   Studies: "bg-blue-950 text-blue-400",
   Rules: "bg-amber-950 text-amber-400",
@@ -17,13 +17,17 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function CardList({ cards }: { cards: CardRow[] }) {
+export default function CardList({
+  cards,
+  emptyMessage = "No cards found.",
+}: {
+  cards: CardRow[];
+  emptyMessage?: string;
+}) {
   if (cards.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-800 px-6 py-12 text-center">
-        <p className="text-sm text-zinc-500">
-          No cards yet. Add your first one above.
-        </p>
+        <p className="text-sm text-zinc-500">{emptyMessage}</p>
       </div>
     );
   }
@@ -62,7 +66,7 @@ export default function CardList({ cards }: { cards: CardRow[] }) {
                   {card.source_type}
                 </span>
                 {card.source_title && (
-                  <span className="text-xs text-zinc-500 truncate max-w-[120px]">
+                  <span className="max-w-[120px] truncate text-xs text-zinc-500">
                     {card.source_title}
                   </span>
                 )}
