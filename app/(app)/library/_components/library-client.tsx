@@ -8,7 +8,7 @@ import {
   SOURCE_ICONS,
 } from "@/app/(app)/_lib/constants";
 import type { CardRow } from "@/app/actions/cards";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const SLIP_CATS = CATEGORIES.filter((c) => c !== "Unprocessed");
 
@@ -37,6 +37,105 @@ type Topic = {
   parent_id: string | null;
 };
 
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const GridIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4">
+    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+    <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+  </svg>
+);
+
+const ListIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4">
+    <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" />
+    <line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" />
+    <line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+  </svg>
+);
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function relativeDate(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// ─── List view card ───────────────────────────────────────────────────────────
+
+function LibraryListCard({
+  card,
+  getTopicLabel,
+  onClick,
+}: {
+  card: Card;
+  getTopicLabel: (id: string) => string;
+  onClick: () => void;
+}) {
+  const s = CAT_STYLE[card.category] || { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" };
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white border border-stone-200 rounded-xl overflow-hidden cursor-pointer hover:border-amber-300 hover:shadow-sm transition-all group flex"
+    >
+      {/* Category color bar */}
+      <div className="w-1 flex-shrink-0" style={{ background: s.border }} />
+
+      <div className="flex-1 px-4 py-3">
+        <h3
+          className="text-sm font-semibold text-stone-800 leading-snug group-hover:text-amber-800 transition-colors"
+          style={{ fontFamily: "Georgia, serif" }}
+        >
+          {card.title}
+        </h3>
+        {card.body && (
+          <p className="text-xs text-stone-500 mt-1 line-clamp-2 leading-relaxed">
+            {card.body}
+          </p>
+        )}
+        <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+          {card.source_type && card.source_type !== "Note" && card.source_title && (
+            <span className="inline-flex items-center gap-1 text-[9px] text-stone-500 bg-stone-100 border border-stone-200 rounded px-1.5 py-0.5">
+              <span>{SOURCE_ICONS[card.source_type] || "📌"}</span>
+              <span className="font-medium truncate max-w-[120px]">{card.source_title}</span>
+            </span>
+          )}
+          {(card.connected_topic_ids || []).slice(0, 3).map((id) => {
+            const label = getTopicLabel(id);
+            return label ? (
+              <span
+                key={id}
+                className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 font-mono"
+              >
+                {label}
+              </span>
+            ) : null;
+          })}
+          {card.scripture && (
+            <span className="text-[9px] text-amber-600 font-medium">
+              {card.scripture}
+            </span>
+          )}
+          <time className="text-[9px] text-stone-400 ml-auto flex-shrink-0">
+            {relativeDate(card.created_at)}
+          </time>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
 export function LibraryClient({
   cards,
   topics,
@@ -48,6 +147,18 @@ export function LibraryClient({
   const [filterTopic, setFilterTopic] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [editingCard, setEditingCard] = useState<Card | null | "new">(null);
+  const [view, setView] = useState<"grid" | "list">("grid");
+
+  // Hydrate view preference from localStorage after mount
+  useEffect(() => {
+    const stored = localStorage.getItem("library-view");
+    if (stored === "list") setView("list");
+  }, []);
+
+  const changeView = (v: "grid" | "list") => {
+    setView(v);
+    localStorage.setItem("library-view", v);
+  };
 
   const topicsForFilter = useMemo(() => {
     const relevantCards = filterCat
@@ -104,6 +215,31 @@ export function LibraryClient({
             placeholder="Search cards..."
             className="bg-stone-100 rounded-xl pl-4 pr-4 py-1.5 text-xs text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-300 w-44"
           />
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg border border-stone-200 overflow-hidden">
+            <button
+              onClick={() => changeView("grid")}
+              className={`px-2.5 py-1.5 transition-colors ${
+                view === "grid"
+                  ? "bg-stone-900 text-white"
+                  : "bg-stone-100 text-stone-500 hover:text-stone-700"
+              }`}
+              title="Grid view"
+            >
+              <GridIcon />
+            </button>
+            <button
+              onClick={() => changeView("list")}
+              className={`px-2.5 py-1.5 transition-colors border-l border-stone-200 ${
+                view === "list"
+                  ? "bg-stone-900 text-white"
+                  : "bg-stone-100 text-stone-500 hover:text-stone-700"
+              }`}
+              title="List view"
+            >
+              <ListIcon />
+            </button>
+          </div>
           <button
             onClick={() => setEditingCard("new")}
             className="flex items-center gap-1.5 bg-stone-900 hover:bg-stone-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-colors"
@@ -234,69 +370,82 @@ export function LibraryClient({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 max-w-4xl">
-            {filteredCards.map((card) => {
-              const s =
-                CAT_STYLE[card.category] || {
-                  bg: "#f1f5f9",
-                  text: "#475569",
-                  border: "#cbd5e1",
-                };
-              return (
-                <div
-                  key={card.id}
-                  onClick={() => setEditingCard(card)}
-                  className="bg-white border border-stone-200 rounded-xl p-4 cursor-pointer hover:border-amber-300 hover:shadow-sm transition-all group"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3
-                      className="text-sm font-semibold text-stone-800 leading-snug group-hover:text-amber-800 transition-colors line-clamp-2"
-                      style={{ fontFamily: "Georgia, serif" }}
-                    >
-                      {card.title}
-                    </h3>
-                    <CatBadge cat={card.category} />
-                  </div>
-                  {card.body && (
-                    <p className="text-xs text-stone-500 line-clamp-2 mb-3 leading-relaxed">
-                      {card.body}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {card.source_type &&
-                        card.source_type !== "Note" &&
-                        card.source_title && (
-                          <span className="inline-flex items-center gap-1 text-[9px] text-stone-500 bg-stone-100 border border-stone-200 rounded px-1.5 py-0.5">
-                            <span>
-                              {SOURCE_ICONS[card.source_type] || "📌"}
-                            </span>
-                            <span className="font-medium truncate max-w-[100px]">
-                              {card.source_title}
-                            </span>
-                          </span>
-                        )}
-                      {(card.connected_topic_ids || [])
-                        .slice(0, 2)
-                        .map((id) => (
-                          <span
-                            key={id}
-                            className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 font-mono"
-                          >
-                            {getTopicLabel(id)}
-                          </span>
-                        ))}
+          {view === "grid" ? (
+            <div className="grid grid-cols-2 gap-3 max-w-4xl">
+              {filteredCards.map((card) => {
+                const s =
+                  CAT_STYLE[card.category] || {
+                    bg: "#f1f5f9",
+                    text: "#475569",
+                    border: "#cbd5e1",
+                  };
+                return (
+                  <div
+                    key={card.id}
+                    onClick={() => setEditingCard(card)}
+                    className="bg-white border border-stone-200 rounded-xl p-4 cursor-pointer hover:border-amber-300 hover:shadow-sm transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3
+                        className="text-sm font-semibold text-stone-800 leading-snug group-hover:text-amber-800 transition-colors line-clamp-2"
+                        style={{ fontFamily: "Georgia, serif" }}
+                      >
+                        {card.title}
+                      </h3>
+                      <CatBadge cat={card.category} />
                     </div>
-                    {card.scripture && (
-                      <span className="text-[9px] text-amber-600 font-medium flex-shrink-0">
-                        {card.scripture}
-                      </span>
+                    {card.body && (
+                      <p className="text-xs text-stone-500 line-clamp-2 mb-3 leading-relaxed">
+                        {card.body}
+                      </p>
                     )}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {card.source_type &&
+                          card.source_type !== "Note" &&
+                          card.source_title && (
+                            <span className="inline-flex items-center gap-1 text-[9px] text-stone-500 bg-stone-100 border border-stone-200 rounded px-1.5 py-0.5">
+                              <span>
+                                {SOURCE_ICONS[card.source_type] || "📌"}
+                              </span>
+                              <span className="font-medium truncate max-w-[100px]">
+                                {card.source_title}
+                              </span>
+                            </span>
+                          )}
+                        {(card.connected_topic_ids || [])
+                          .slice(0, 2)
+                          .map((id) => (
+                            <span
+                              key={id}
+                              className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 font-mono"
+                            >
+                              {getTopicLabel(id)}
+                            </span>
+                          ))}
+                      </div>
+                      {card.scripture && (
+                        <span className="text-[9px] text-amber-600 font-medium flex-shrink-0">
+                          {card.scripture}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 max-w-4xl">
+              {filteredCards.map((card) => (
+                <LibraryListCard
+                  key={card.id}
+                  card={card}
+                  getTopicLabel={getTopicLabel}
+                  onClick={() => setEditingCard(card)}
+                />
+              ))}
+            </div>
+          )}
 
           {filteredCards.length === 0 && (
             <div className="text-center py-16 text-stone-300">
