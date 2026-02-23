@@ -155,7 +155,7 @@ export function KanbanClient({
             className="font-bold text-stone-900"
             style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
           >
-            Musings
+            Capture
           </h1>
           <p className="text-xs text-stone-400">
             Capture ideas fast. Triage them later.

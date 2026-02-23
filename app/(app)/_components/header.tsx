@@ -57,8 +57,8 @@ export default function AppHeader({ email }: { email: string }) {
                 href={href}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                   active
-                    ? "bg-white shadow-sm text-stone-900"
-                    : "text-stone-500 hover:text-stone-800"
+                    ? "bg-white shadow text-stone-900 font-semibold ring-1 ring-stone-200/60"
+                    : "text-stone-500 hover:text-stone-700"
                 }`}
               >
                 <span className="text-base leading-none">{icon}</span>

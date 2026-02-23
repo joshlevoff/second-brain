@@ -91,7 +91,7 @@ export function LibraryClient({
             className="font-bold text-stone-900"
             style={{ fontFamily: "Georgia, serif" }}
           >
-            Slip Box
+            Library
           </h1>
           <p className="text-xs text-stone-400">
             Browse and filter your knowledge base
