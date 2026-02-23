@@ -20,7 +20,7 @@ export default async function DashboardPage() {
         </p>
         <div className="mt-8 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
           <p className="text-sm text-stone-500">
-            Use <strong>Musings</strong> to capture ideas, <strong>Slip Box</strong> to review your cards, and <strong>Topics</strong> to organise your knowledge tree.
+            Use <strong>Capture</strong> to capture ideas, <strong>Library</strong> to review your cards, and <strong>Topics</strong> to organise your knowledge tree.
           </p>
         </div>
       </div>
