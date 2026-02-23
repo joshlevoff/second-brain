@@ -6,9 +6,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_TABS = [
-  { href: "/capture", label: "Musings", icon: "📥" },
-  { href: "/library", label: "Slip Box", icon: "📚" },
-  { href: "/topics", label: "Topics", icon: "🗂" },
+  { href: "/capture", label: "Capture", icon: "📥", disabled: false },
+  { href: "/library", label: "Library", icon: "📚", disabled: false },
+  { href: "/topics",  label: "Topics",  icon: "🗂",  disabled: false },
+  { href: "/studio",  label: "Studio",  icon: "⚡",  disabled: true  },
+  { href: "/import",  label: "Import",  icon: "📤",  disabled: true  },
 ];
 
 export default function AppHeader({ email }: { email: string }) {
@@ -35,8 +37,20 @@ export default function AppHeader({ email }: { email: string }) {
       {/* Center: tab pills */}
       <div className="flex-1 flex justify-center">
         <div className="flex items-center gap-0.5 bg-stone-100 rounded-xl p-1">
-          {NAV_TABS.map(({ href, label, icon }) => {
+          {NAV_TABS.map(({ href, label, icon, disabled }) => {
             const active = pathname === href;
+            if (disabled) {
+              return (
+                <span
+                  key={href}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap opacity-40 cursor-not-allowed text-stone-500"
+                  title="Coming soon"
+                >
+                  <span className="text-base leading-none">{icon}</span>
+                  {label}
+                </span>
+              );
+            }
             return (
               <Link
                 key={href}
