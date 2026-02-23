@@ -7,14 +7,21 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   return (
-    <div className="flex-1 overflow-auto bg-zinc-950">
+    <div className="flex-1 overflow-auto bg-stone-50">
       <div className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-2xl font-bold text-zinc-50">Your Second Brain</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Welcome back, {user!.email}
+        <h1
+          className="text-2xl font-bold text-stone-900"
+          style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
+        >
+          Welcome back, {user!.email?.split("@")[0]}
+        </h1>
+        <p className="mt-1 text-sm text-stone-400">
+          Your knowledge base is ready.
         </p>
-        <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <p className="text-sm text-zinc-500">Your notes will appear here.</p>
+        <div className="mt-8 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+          <p className="text-sm text-stone-500">
+            Use <strong>Musings</strong> to capture ideas, <strong>Slip Box</strong> to review your cards, and <strong>Topics</strong> to organise your knowledge tree.
+          </p>
         </div>
       </div>
     </div>

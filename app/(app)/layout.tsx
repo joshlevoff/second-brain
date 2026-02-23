@@ -15,7 +15,7 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-stone-50">
       <AppHeader email={user.email!} />
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {children}
