@@ -1,27 +1,8 @@
 "use client";
 
 import { createCard } from "@/app/actions/cards";
+import { CATEGORIES, SOURCE_TYPES } from "@/app/(app)/_lib/constants";
 import { useState, useTransition } from "react";
-
-const CATEGORIES = [
-  "Unprocessed",
-  "Studies",
-  "Rules",
-  "Articles",
-  "Courses",
-  "Literature I Love",
-];
-
-const SOURCE_TYPES = [
-  "Book",
-  "Article",
-  "Podcast",
-  "YouTube",
-  "URL",
-  "Note",
-  "Course",
-  "Other",
-];
 
 const emptyForm = {
   title: "",
@@ -29,6 +10,10 @@ const emptyForm = {
   category: "Unprocessed",
   source_type: "Note",
   source_title: "",
+  source_url: "",
+  scripture: "",
+  status: "Unprocessed",
+  connected_topic_ids: [] as string[],
 };
 
 export default function CaptureForm() {
@@ -62,9 +47,7 @@ export default function CaptureForm() {
       onSubmit={handleSubmit}
       className="rounded-xl border border-zinc-800 bg-zinc-900 p-6"
     >
-      <h2 className="mb-5 text-base font-semibold text-zinc-50">
-        New card
-      </h2>
+      <h2 className="mb-5 text-base font-semibold text-zinc-50">New card</h2>
 
       <div className="flex flex-col gap-4">
         {/* Title */}

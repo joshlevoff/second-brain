@@ -15,9 +15,11 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50">
+    <div className="flex h-screen flex-col">
       <AppHeader email={user.email!} />
-      <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </main>
     </div>
   );
 }
