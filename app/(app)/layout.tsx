@@ -14,6 +14,14 @@ export default async function AppLayout({
 
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("onboarding_complete")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile?.onboarding_complete) redirect("/onboarding");
+
   return (
     <div className="flex h-screen flex-col bg-stone-50">
       <AppHeader email={user.email!} />
