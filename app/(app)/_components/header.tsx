@@ -10,7 +10,7 @@ const NAV_TABS = [
   { href: "/library", label: "Library", icon: "📚", disabled: false },
   { href: "/topics",  label: "Topics",  icon: "🗂",  disabled: false },
   { href: "/studio",  label: "Studio",  icon: "⚡",  disabled: true  },
-  { href: "/import",  label: "Import",  icon: "📤",  disabled: true  },
+  { href: "/import",  label: "Import",  icon: "📤",  disabled: false },
 ];
 
 export default function AppHeader({ email }: { email: string }) {
