@@ -87,6 +87,23 @@ export async function updateCard(
   return { success: true };
 }
 
+export async function updateCardCategory(
+  cardId: string,
+  category: string
+): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const status = category === "Unprocessed" ? "Unprocessed" : "Processed";
+  await supabase
+    .from("cards")
+    .update({ category, status })
+    .eq("id", cardId)
+    .eq("user_id", user.id);
+}
+
 export async function deleteCard(
   id: string
 ): Promise<{ error: string } | { success: true }> {

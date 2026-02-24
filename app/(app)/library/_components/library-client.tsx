@@ -7,7 +7,7 @@ import {
   LEVEL_COLORS,
   SOURCE_ICONS,
 } from "@/app/(app)/_lib/constants";
-import type { CardRow } from "@/app/actions/cards";
+import { updateCardCategory, type CardRow } from "@/app/actions/cards";
 import { useEffect, useMemo, useState } from "react";
 
 const SLIP_CATS = CATEGORIES.filter((c) => c !== "Unprocessed");
@@ -117,16 +117,48 @@ function KanbanColumn({
   getTopicLabel,
   onAdd,
   onEdit,
+  isDragOver,
+  draggedCardId,
+  onDragOverColumn,
+  onDragLeaveColumn,
+  onDropCard,
+  onCardDragStart,
+  onCardDragEnd,
 }: {
   category: string;
   cards: Card[];
   getTopicLabel: (id: string) => string;
   onAdd: () => void;
   onEdit: (card: Card) => void;
+  isDragOver: boolean;
+  draggedCardId: string | null;
+  onDragOverColumn: () => void;
+  onDragLeaveColumn: () => void;
+  onDropCard: (cardId: string) => Promise<void>;
+  onCardDragStart: (e: React.DragEvent, cardId: string) => void;
+  onCardDragEnd: () => void;
 }) {
   const s = CAT_STYLE[category] || { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" };
   return (
-    <div className="flex flex-col flex-shrink-0 w-[260px] h-full" style={{ background: s.bg + "55" }}>
+    <div
+      className={`flex flex-col flex-shrink-0 w-[260px] h-full rounded-xl transition-colors ${
+        isDragOver ? "ring-2 ring-amber-400" : ""
+      }`}
+      style={{ background: isDragOver ? "#fffbeb" : s.bg + "55" }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        onDragOverColumn();
+      }}
+      onDragLeave={onDragLeaveColumn}
+      onDrop={async (e) => {
+        e.preventDefault();
+        const cardId = e.dataTransfer.getData("cardId");
+        if (!cardId) return;
+        onDragLeaveColumn();
+        await onDropCard(cardId);
+      }}
+    >
       {/* Column header */}
       <div className="flex items-center justify-between px-3 py-2.5 flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -153,8 +185,13 @@ function KanbanColumn({
         {cards.map((card) => (
           <div
             key={card.id}
+            draggable
+            onDragStart={(e) => onCardDragStart(e, card.id)}
+            onDragEnd={onCardDragEnd}
             onClick={() => onEdit(card)}
-            className="bg-white border border-stone-200 rounded-xl p-3 cursor-pointer hover:border-amber-300 hover:shadow-sm transition-all group"
+            className={`bg-white border border-stone-200 rounded-xl p-3 cursor-grab hover:border-amber-300 hover:shadow-sm transition-all group ${
+              draggedCardId === card.id ? "opacity-40" : "opacity-100"
+            }`}
           >
             <h3
               className="text-xs font-semibold text-stone-800 line-clamp-2 leading-snug group-hover:text-amber-800 transition-colors"
@@ -274,12 +311,15 @@ function LibraryListCard({
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function LibraryClient({
-  cards,
+  cards: initialCards,
   topics,
 }: {
   cards: Card[];
   topics: Topic[];
 }) {
+  const [cards, setCards] = useState<Card[]>(initialCards);
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState<string | null>(null);
   const [filterTopic, setFilterTopic] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -337,6 +377,21 @@ export function LibraryClient({
   const getTopicLabel = (id: string) => {
     const t = topics.find((x) => x.id === id);
     return t ? `${t.number} ${t.title}` : "";
+  };
+
+  const handleMoveCard = async (cardId: string, newCategory: string) => {
+    setCards((prev) =>
+      prev.map((c) =>
+        c.id === cardId
+          ? {
+              ...c,
+              category: newCategory,
+              status: newCategory === "Unprocessed" ? "Unprocessed" : "Processed",
+            }
+          : c
+      )
+    );
+    await updateCardCategory(cardId, newCategory);
   };
 
   const filterBar = (filterCat || filterTopic) && (
@@ -515,6 +570,20 @@ export function LibraryClient({
                   getTopicLabel={getTopicLabel}
                   onAdd={() => setEditingCard(EMPTY_CARD(cat))}
                   onEdit={(card) => setEditingCard(toModalCard(card))}
+                  isDragOver={dragOverColumn === cat}
+                  draggedCardId={draggedCardId}
+                  onDragOverColumn={() => setDragOverColumn(cat)}
+                  onDragLeaveColumn={() => setDragOverColumn(null)}
+                  onDropCard={async (cardId) => handleMoveCard(cardId, cat)}
+                  onCardDragStart={(e, cardId) => {
+                    e.dataTransfer.setData("cardId", cardId);
+                    e.dataTransfer.effectAllowed = "move";
+                    setDraggedCardId(cardId);
+                  }}
+                  onCardDragEnd={() => {
+                    setDraggedCardId(null);
+                    setDragOverColumn(null);
+                  }}
                 />
               ))}
             </div>
