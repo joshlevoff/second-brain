@@ -137,6 +137,7 @@ export function KanbanClient({
   const unprocessed = cards.filter((c) => c.status === "Unprocessed");
 
   const [editingCard, setEditingCard] = useState<ModalCard | null>(null);
+  const [newCardOpen, setNewCardOpen] = useState(false);
   const [quickInput, setQuickInput] = useState("");
   const [toast, setToast] = useState(false);
   const [isCapturing, startCapture] = useTransition();
@@ -185,20 +186,28 @@ export function KanbanClient({
 
       {/* Quick capture */}
       <div className="flex-shrink-0 px-5 py-3 bg-white border-b border-stone-100">
-        <div className="relative max-w-2xl">
-          <input
-            value={quickInput}
-            onChange={(e) => setQuickInput(e.target.value)}
-            onKeyDown={handleQuickCapture}
-            disabled={isCapturing}
-            placeholder="Drop an idea here... press Enter to capture"
-            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-colors disabled:opacity-50"
-          />
-          {toast && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg px-2.5 py-1 pointer-events-none">
-              Captured ✓
-            </span>
-          )}
+        <div className="flex items-center gap-3 max-w-2xl">
+          <div className="relative flex-1">
+            <input
+              value={quickInput}
+              onChange={(e) => setQuickInput(e.target.value)}
+              onKeyDown={handleQuickCapture}
+              disabled={isCapturing}
+              placeholder="Drop an idea here... press Enter to capture"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-colors disabled:opacity-50"
+            />
+            {toast && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg px-2.5 py-1 pointer-events-none">
+                Captured ✓
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setNewCardOpen(true)}
+            className="flex-shrink-0 flex items-center gap-1.5 bg-stone-900 hover:bg-stone-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap"
+          >
+            + New Card
+          </button>
         </div>
       </div>
 
@@ -227,6 +236,13 @@ export function KanbanClient({
           card={editingCard}
           topics={topics}
           onClose={() => setEditingCard(null)}
+        />
+      )}
+      {newCardOpen && (
+        <CardModal
+          card={null}
+          topics={topics}
+          onClose={() => setNewCardOpen(false)}
         />
       )}
     </div>

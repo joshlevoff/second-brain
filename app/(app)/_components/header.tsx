@@ -1,6 +1,5 @@
 "use client";
 
-import { NewCardButton } from "@/app/(app)/_components/new-card-button";
 import { signOut } from "@/app/actions/auth";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -75,7 +74,6 @@ export default function AppHeader({ email }: { email: string }) {
           placeholder="Search..."
           className="bg-stone-100 rounded-xl px-3 py-1.5 text-xs text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-300 w-36"
         />
-        <NewCardButton />
         <div className="flex items-center gap-2 border-l border-stone-200 pl-2.5">
           <span className="text-xs text-stone-400 hidden lg:block truncate max-w-[100px]">
             {email}
