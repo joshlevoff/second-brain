@@ -20,6 +20,12 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Second Brain",
   description: "Your personal knowledge management system",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Second Brain",
+  },
 };
 
 export default function RootLayout({
@@ -29,6 +35,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="theme-color" content="#1c1917" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
       >
