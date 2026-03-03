@@ -1,7 +1,7 @@
 import { getTopics } from "@/app/actions/topics";
-import { ImportClient } from "./_components/import-client";
+import { ImportTabs } from "./_components/import-tabs";
 
 export default async function ImportPage() {
   const topics = await getTopics();
-  return <ImportClient topics={topics} />;
+  return <ImportTabs topics={topics} />;
 }
