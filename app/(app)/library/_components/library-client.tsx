@@ -14,6 +14,8 @@ import {
 import {
   createCategory,
   deleteCategory,
+  renameCategory,
+  reorderCategories,
   type CategoryRow,
 } from "@/app/actions/categories";
 import { useEffect, useMemo, useState } from "react";
@@ -99,9 +101,28 @@ const TrashIcon = () => (
   </svg>
 );
 
+const PencilIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3 h-3">
+    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5">
     <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const SmallCheckIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const SmallXIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
@@ -154,7 +175,7 @@ function KanbanColumn({
   onToggleSelect,
   allInColumnSelected,
   onToggleSelectAll,
-  anySelected,
+  isTouchDevice,
 }: {
   category: string;
   cards: Card[];
@@ -172,9 +193,11 @@ function KanbanColumn({
   onToggleSelect: (id: string) => void;
   allInColumnSelected: boolean;
   onToggleSelectAll: () => void;
-  anySelected: boolean;
+  isTouchDevice: boolean;
 }) {
   const s = CAT_STYLE[category] || { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" };
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+
   return (
     <div
       className={`flex flex-col flex-shrink-0 w-[260px] h-full rounded-xl transition-colors ${
@@ -228,31 +251,38 @@ function KanbanColumn({
       <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-2">
         {cards.map((card) => {
           const isSelected = selectedIds.has(card.id);
+          const isHovered = hoveredCardId === card.id;
+          const showCheckbox = isHovered || isSelected || isTouchDevice;
+
           return (
             <div
               key={card.id}
               draggable
               onDragStart={(e) => onCardDragStart(e, card.id)}
               onDragEnd={onCardDragEnd}
-              onClick={() => onEdit(card)}
-              className={`relative bg-white rounded-xl p-3 cursor-pointer hover:shadow-sm transition-all group border ${
+              onMouseEnter={() => setHoveredCardId(card.id)}
+              onMouseLeave={() => setHoveredCardId(null)}
+              className={`relative bg-white rounded-xl border transition-all ${
                 isSelected
-                  ? "ring-2 ring-amber-400 border-amber-300"
-                  : "border-stone-200 hover:border-amber-300"
+                  ? "ring-2 ring-amber-400 ring-inset border-amber-300"
+                  : "border-stone-200 hover:border-amber-300 hover:shadow-sm"
               } ${draggedCardId === card.id ? "opacity-40" : "opacity-100"}`}
             >
-              {/* Checkbox */}
-              <div
-                className={`absolute top-2 right-2 z-10 transition-opacity ${
-                  anySelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              {/* Checkbox — absolutely positioned, does NOT bubble to card body */}
+              <label
+                className={`absolute top-2 right-2 z-10 cursor-pointer transition-opacity ${
+                  showCheckbox ? "opacity-100" : "opacity-0 pointer-events-none"
                 }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleSelect(card.id);
-                }}
+                onClick={(e) => e.stopPropagation()}
               >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => onToggleSelect(card.id)}
+                  className="sr-only"
+                />
                 <div
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer ${
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                     isSelected
                       ? "bg-amber-500 border-amber-500 text-white"
                       : "bg-white border-stone-300 hover:border-amber-400"
@@ -260,47 +290,53 @@ function KanbanColumn({
                 >
                   {isSelected && <CheckIcon />}
                 </div>
-              </div>
+              </label>
 
-              <h3
-                className="text-xs font-semibold text-stone-800 line-clamp-2 leading-snug group-hover:text-amber-800 transition-colors pr-6"
-                style={{ fontFamily: "Georgia, serif" }}
+              {/* Card body — click opens modal */}
+              <div
+                onClick={() => onEdit(card)}
+                className="p-3 cursor-pointer group"
               >
-                {card.title}
-              </h3>
-              {card.body && (
-                <p className="text-[10px] text-stone-400 mt-1 line-clamp-2 leading-relaxed">
-                  {card.body}
-                </p>
-              )}
-              {(card.source_title ||
-                (card.connected_topic_ids ?? []).length > 0 ||
-                card.scripture) && (
-                <div className="flex items-center gap-1 mt-2 flex-wrap">
-                  {card.source_type && card.source_type !== "Note" && card.source_title && (
-                    <span className="inline-flex items-center gap-1 text-[9px] text-stone-500 bg-stone-100 border border-stone-200 rounded px-1.5 py-0.5">
-                      <span>{SOURCE_ICONS[card.source_type] || "📌"}</span>
-                      <span className="font-medium truncate max-w-[80px]">{card.source_title}</span>
-                    </span>
-                  )}
-                  {(card.connected_topic_ids ?? []).slice(0, 2).map((id) => {
-                    const label = getTopicLabel(id);
-                    return label ? (
-                      <span
-                        key={id}
-                        className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 font-mono"
-                      >
-                        {label}
+                <h3
+                  className="text-xs font-semibold text-stone-800 line-clamp-2 leading-snug group-hover:text-amber-800 transition-colors pr-6"
+                  style={{ fontFamily: "Georgia, serif" }}
+                >
+                  {card.title}
+                </h3>
+                {card.body && (
+                  <p className="text-[10px] text-stone-400 mt-1 line-clamp-2 leading-relaxed">
+                    {card.body}
+                  </p>
+                )}
+                {(card.source_title ||
+                  (card.connected_topic_ids ?? []).length > 0 ||
+                  card.scripture) && (
+                  <div className="flex items-center gap-1 mt-2 flex-wrap">
+                    {card.source_type && card.source_type !== "Note" && card.source_title && (
+                      <span className="inline-flex items-center gap-1 text-[9px] text-stone-500 bg-stone-100 border border-stone-200 rounded px-1.5 py-0.5">
+                        <span>{SOURCE_ICONS[card.source_type] || "📌"}</span>
+                        <span className="font-medium truncate max-w-[80px]">{card.source_title}</span>
                       </span>
-                    ) : null;
-                  })}
-                  {card.scripture && (
-                    <span className="text-[9px] text-amber-600 font-medium">
-                      {card.scripture}
-                    </span>
-                  )}
-                </div>
-              )}
+                    )}
+                    {(card.connected_topic_ids ?? []).slice(0, 2).map((id) => {
+                      const label = getTopicLabel(id);
+                      return label ? (
+                        <span
+                          key={id}
+                          className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 font-mono"
+                        >
+                          {label}
+                        </span>
+                      ) : null;
+                    })}
+                    {card.scripture && (
+                      <span className="text-[9px] text-amber-600 font-medium">
+                        {card.scripture}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -396,12 +432,20 @@ export function LibraryClient({
   const [search, setSearch] = useState("");
   const [editingCard, setEditingCard] = useState<ModalCard | null>(null);
   const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   // Category management
   const [managingCats, setManagingCats] = useState(false);
   const [catInput, setCatInput] = useState("");
   const [catAddError, setCatAddError] = useState<string | null>(null);
   const [catDeleteErrors, setCatDeleteErrors] = useState<Record<string, string>>({});
+  // Rename
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
+  // Reorder
+  const [catDraggedId, setCatDraggedId] = useState<string | null>(null);
+  const [catDropIndex, setCatDropIndex] = useState<number | null>(null);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -410,13 +454,12 @@ export function LibraryClient({
   const slipCats = categories.map((c) => c.name);
   const modalCategories = ["Unprocessed", ...slipCats];
 
-  // Hydrate view preference from localStorage after mount
   useEffect(() => {
     const stored = localStorage.getItem("library-view");
     if (stored === "list") setView("list");
+    setIsTouchDevice(window.matchMedia("(hover: none)").matches);
   }, []);
 
-  // Clear selection on view change or filter change
   useEffect(() => { setSelectedIds(new Set()); setBulkTargetCat(""); }, [view]);
   useEffect(() => { setSelectedIds(new Set()); setBulkTargetCat(""); }, [filterCat, filterTopic]);
 
@@ -459,6 +502,8 @@ export function LibraryClient({
     const t = topics.find((x) => x.id === id);
     return t ? `${t.number} ${t.title}` : "";
   };
+
+  // ─── Card move handlers ───────────────────────────────────────────────────
 
   const handleMoveCard = async (cardId: string, newCategory: string) => {
     setCards((prev) =>
@@ -515,15 +560,13 @@ export function LibraryClient({
       }));
       return;
     }
-    // Optimistic remove
     setCategories((prev) => prev.filter((c) => c.id !== cat.id));
     setCatDeleteErrors((prev) => { const n = { ...prev }; delete n[cat.id]; return n; });
     if (filterCat === cat.name) setFilterCat(null);
     const result = await deleteCategory(cat.id);
     if ("error" in result) {
-      // Rollback
       setCategories((prev) =>
-        [...prev, cat].sort((a, b) => a.created_at.localeCompare(b.created_at))
+        [...prev, cat].sort((a, b) => a.sort_order - b.sort_order)
       );
       setCatDeleteErrors((prev) => ({ ...prev, [cat.id]: result.error }));
     }
@@ -547,9 +590,72 @@ export function LibraryClient({
     }
   };
 
-  // ─── Derived ─────────────────────────────────────────────────────────────
+  const handleRenameConfirm = async (catId: string) => {
+    const name = renameDraft.trim();
+    if (!name) return;
+    const cat = categories.find((c) => c.id === catId);
+    if (!cat) return;
+    if (name === cat.name) { setEditingCatId(null); return; }
+    if (categories.some((c) => c.id !== catId && c.name.toLowerCase() === name.toLowerCase())) {
+      setRenameError("Category already exists.");
+      return;
+    }
+    const oldName = cat.name;
+    // Optimistic update
+    setCategories((prev) => prev.map((c) => c.id === catId ? { ...c, name } : c));
+    setCards((prev) => prev.map((c) => c.category === oldName ? { ...c, category: name } : c));
+    if (filterCat === oldName) setFilterCat(name);
+    setEditingCatId(null);
+    setRenameError(null);
+    const result = await renameCategory(catId, name);
+    if (result.error) {
+      // Rollback
+      setCategories((prev) => prev.map((c) => c.id === catId ? { ...c, name: oldName } : c));
+      setCards((prev) => prev.map((c) => c.category === name ? { ...c, category: oldName } : c));
+      if (filterCat === name) setFilterCat(oldName);
+    }
+  };
 
-  const anySelected = selectedIds.size > 0;
+  // ─── Category reorder handlers ────────────────────────────────────────────
+
+  const handleCatDragStart = (e: React.DragEvent, catId: string) => {
+    setCatDraggedId(catId);
+    e.dataTransfer.setData("catId", catId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleCatDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    setCatDropIndex(index);
+  };
+
+  const handleCatDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const catId = e.dataTransfer.getData("catId");
+    if (!catId) { setCatDraggedId(null); setCatDropIndex(null); return; }
+    const dragIndex = categories.findIndex((c) => c.id === catId);
+    if (dragIndex === -1 || dragIndex === dropIndex) {
+      setCatDraggedId(null); setCatDropIndex(null); return;
+    }
+    const newOrder = [...categories];
+    const [dragged] = newOrder.splice(dragIndex, 1);
+    const insertAt = dropIndex > dragIndex ? dropIndex - 1 : dropIndex;
+    newOrder.splice(insertAt, 0, dragged);
+    setCategories(newOrder);
+    setCatDraggedId(null);
+    setCatDropIndex(null);
+    await reorderCategories(newOrder.map((c) => c.id));
+  };
+
+  const handleCatDragEnd = () => {
+    setCatDraggedId(null);
+    setCatDropIndex(null);
+  };
+
+  // ─── Derived ─────────────────────────────────────────────────────────────
 
   const filterBar = (filterCat || filterTopic) && (
     <div className="flex items-center gap-2 mb-4 text-xs text-stone-500 flex-shrink-0">
@@ -628,7 +734,13 @@ export function LibraryClient({
               Category
             </p>
             <button
-              onClick={() => { setManagingCats(!managingCats); setCatAddError(null); setCatDeleteErrors({}); }}
+              onClick={() => {
+                setManagingCats(!managingCats);
+                setCatAddError(null);
+                setCatDeleteErrors({});
+                setEditingCatId(null);
+                setRenameError(null);
+              }}
               className="text-stone-400 hover:text-stone-600 transition-colors"
               title="Manage categories"
             >
@@ -639,32 +751,123 @@ export function LibraryClient({
           {managingCats ? (
             /* ── Manage panel ── */
             <div className="px-3 pb-3">
-              <div className="space-y-0.5 mb-3">
-                {categories.map((cat) => {
+              <div
+                className="space-y-0.5 mb-3"
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setCatDropIndex(null);
+                  }
+                }}
+              >
+                {categories.map((cat, index) => {
                   const count = cards.filter((c) => c.category === cat.name).length;
+                  const isBeingDragged = catDraggedId === cat.id;
+                  const showDropIndicator = catDropIndex === index && catDraggedId !== null && catDraggedId !== cat.id;
+                  const isEditing = editingCatId === cat.id;
+
                   return (
-                    <div key={cat.id}>
-                      <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-stone-50 group">
-                        <span className="text-xs text-stone-700 truncate flex-1">{cat.name}</span>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-[10px] text-stone-400">{count}</span>
-                          <button
-                            onClick={() => handleDeleteCategory(cat)}
-                            className="text-stone-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete category"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
+                    <div
+                      key={cat.id}
+                      draggable
+                      onDragStart={(e) => handleCatDragStart(e, cat.id)}
+                      onDragOver={(e) => handleCatDragOver(e, index)}
+                      onDrop={(e) => handleCatDrop(e, index)}
+                      onDragEnd={handleCatDragEnd}
+                      className={`rounded-lg transition-all ${
+                        showDropIndicator ? "border-t-2 border-amber-400" : ""
+                      } ${isBeingDragged ? "opacity-40" : ""}`}
+                    >
+                      <div className="flex items-center px-1 py-1.5 hover:bg-stone-50 rounded-lg group">
+                        {/* Drag handle */}
+                        <span
+                          className="text-stone-300 hover:text-stone-500 mr-1.5 flex-shrink-0 select-none text-sm cursor-grab active:cursor-grabbing leading-none"
+                          title="Drag to reorder"
+                        >
+                          ⠿
+                        </span>
+
+                        {isEditing ? (
+                          /* Inline rename input */
+                          <div className="flex-1 flex items-center gap-1 min-w-0">
+                            <input
+                              autoFocus
+                              value={renameDraft}
+                              onChange={(e) => { setRenameDraft(e.target.value); setRenameError(null); }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameConfirm(cat.id);
+                                if (e.key === "Escape") { setEditingCatId(null); setRenameError(null); }
+                              }}
+                              className="flex-1 min-w-0 border border-amber-300 rounded px-1.5 py-0.5 text-xs text-stone-700 focus:outline-none focus:border-amber-500"
+                            />
+                            <button
+                              onClick={() => handleRenameConfirm(cat.id)}
+                              className="text-green-500 hover:text-green-700 flex-shrink-0"
+                              title="Confirm"
+                            >
+                              <SmallCheckIcon />
+                            </button>
+                            <button
+                              onClick={() => { setEditingCatId(null); setRenameError(null); }}
+                              className="text-stone-400 hover:text-stone-600 flex-shrink-0"
+                              title="Cancel"
+                            >
+                              <SmallXIcon />
+                            </button>
+                          </div>
+                        ) : (
+                          /* Display mode */
+                          <>
+                            <span className="text-xs text-stone-700 truncate flex-1">{cat.name}</span>
+                            <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-[10px] text-stone-400">{count}</span>
+                              <button
+                                onClick={() => {
+                                  setEditingCatId(cat.id);
+                                  setRenameDraft(cat.name);
+                                  setRenameError(null);
+                                }}
+                                className="text-stone-300 hover:text-amber-500 transition-colors"
+                                title="Rename"
+                              >
+                                <PencilIcon />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(cat)}
+                                className="text-stone-300 hover:text-red-400 transition-colors"
+                                title="Delete"
+                              >
+                                <TrashIcon />
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
+
+                      {/* Per-row errors */}
                       {catDeleteErrors[cat.id] && (
                         <p className="text-[10px] text-red-500 px-2 pb-1 leading-tight">
                           {catDeleteErrors[cat.id]}
                         </p>
                       )}
+                      {isEditing && renameError && (
+                        <p className="text-[10px] text-red-500 px-2 pb-1 leading-tight">
+                          {renameError}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
+
+                {/* End drop zone */}
+                <div
+                  className={`h-3 rounded transition-colors ${
+                    catDropIndex === categories.length && catDraggedId !== null
+                      ? "border-t-2 border-amber-400"
+                      : ""
+                  }`}
+                  onDragOver={(e) => handleCatDragOver(e, categories.length)}
+                  onDrop={(e) => handleCatDrop(e, categories.length)}
+                />
               </div>
 
               {categories.length < 20 ? (
@@ -801,7 +1004,7 @@ export function LibraryClient({
                     onToggleSelect={handleToggleSelect}
                     allInColumnSelected={allInColumnSelected}
                     onToggleSelectAll={() => handleToggleSelectAll(cat)}
-                    anySelected={anySelected}
+                    isTouchDevice={isTouchDevice}
                   />
                 );
               })}
