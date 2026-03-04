@@ -194,6 +194,7 @@ export function ImportClient({ topics }: { topics: Topic[] }) {
   const [approved, setApproved] = useState(0);
   const [skipped, setSkipped] = useState(0);
   const [isSaving, startTransition] = useTransition();
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isReading, setIsReading] = useState(false);
@@ -289,6 +290,30 @@ export function ImportClient({ topics }: { topics: Topic[] }) {
   const handleSkip = () => {
     setSkipped((s) => s + 1);
     advance(currentIndex + 1);
+  };
+
+  const handleAcceptAll = async () => {
+    const sourceName = filename.replace(/\.[^.]+$/, "");
+    const remaining = chunks.slice(currentIndex);
+    setIsBulkSaving(true);
+    await Promise.all(
+      remaining.map((chunk) =>
+        createCard({
+          title: chunk.title,
+          body: chunk.body,
+          category: chunk.category,
+          status: "Processed",
+          source_type: "Note",
+          source_title: sourceName,
+          source_url: "",
+          scripture: chunk.scripture,
+          connected_topic_ids: chunk.connected_topic_ids,
+        })
+      )
+    );
+    setApproved((a) => a + remaining.length);
+    setIsBulkSaving(false);
+    setImportState("complete");
   };
 
   const reset = () => {
@@ -483,19 +508,30 @@ export function ImportClient({ topics }: { topics: Topic[] }) {
             <div className="flex gap-3 mt-4">
               <button
                 onClick={handleSkip}
-                disabled={isSaving}
+                disabled={isSaving || isBulkSaving}
                 className="flex-1 py-3 rounded-xl bg-stone-100 text-stone-700 text-sm font-semibold hover:bg-stone-200 disabled:opacity-40 transition-colors"
               >
                 Skip →
               </button>
               <button
                 onClick={handleApprove}
-                disabled={isSaving || !editFields.title.trim()}
+                disabled={isSaving || isBulkSaving || !editFields.title.trim()}
                 className="flex-1 py-3 rounded-xl bg-stone-900 text-white text-sm font-semibold hover:bg-stone-700 disabled:opacity-40 transition-colors"
               >
                 {isSaving ? "Saving…" : "Add to Library ✓"}
               </button>
             </div>
+            {chunks.length - currentIndex > 1 && (
+              <button
+                onClick={handleAcceptAll}
+                disabled={isSaving || isBulkSaving}
+                className="w-full mt-2 py-2.5 rounded-xl border border-stone-200 text-stone-500 text-xs font-semibold hover:bg-stone-50 disabled:opacity-40 transition-colors"
+              >
+                {isBulkSaving
+                  ? "Saving…"
+                  : `Accept all ${chunks.length - currentIndex} remaining →`}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -190,6 +190,7 @@ export function ReadwiseClient({ topics }: { topics: Topic[] }) {
   const [approved, setApproved] = useState(0);
   const [skipped, setSkipped] = useState(0);
   const [isSaving, startSaveTransition] = useTransition();
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
@@ -288,6 +289,29 @@ export function ReadwiseClient({ topics }: { topics: Topic[] }) {
   const handleSkip = () => {
     setSkipped((s) => s + 1);
     advance(currentIndex + 1);
+  };
+
+  const handleAcceptAll = async () => {
+    const remaining = cards.slice(currentIndex);
+    setIsBulkSaving(true);
+    await Promise.all(
+      remaining.map((card) =>
+        createCard({
+          title: card.title,
+          body: card.body,
+          category: card.category,
+          status: "Processed",
+          source_type: "Book",
+          source_title: card.source_title,
+          source_url: card.source_url,
+          scripture: card.scripture,
+          connected_topic_ids: card.connected_topic_ids,
+        })
+      )
+    );
+    setApproved((a) => a + remaining.length);
+    setIsBulkSaving(false);
+    setRwState("complete");
   };
 
   const resetToReady = () => {
@@ -570,19 +594,30 @@ export function ReadwiseClient({ topics }: { topics: Topic[] }) {
             <div className="flex gap-3 mt-4">
               <button
                 onClick={handleSkip}
-                disabled={isSaving}
+                disabled={isSaving || isBulkSaving}
                 className="flex-1 py-3 rounded-xl bg-stone-100 text-stone-700 text-sm font-semibold hover:bg-stone-200 disabled:opacity-40 transition-colors"
               >
                 Skip →
               </button>
               <button
                 onClick={handleApprove}
-                disabled={isSaving || !editFields.title.trim()}
+                disabled={isSaving || isBulkSaving || !editFields.title.trim()}
                 className="flex-1 py-3 rounded-xl bg-stone-900 text-white text-sm font-semibold hover:bg-stone-700 disabled:opacity-40 transition-colors"
               >
                 {isSaving ? "Saving…" : "Add to Library ✓"}
               </button>
             </div>
+            {cards.length - currentIndex > 1 && (
+              <button
+                onClick={handleAcceptAll}
+                disabled={isSaving || isBulkSaving}
+                className="w-full mt-2 py-2.5 rounded-xl border border-stone-200 text-stone-500 text-xs font-semibold hover:bg-stone-50 disabled:opacity-40 transition-colors"
+              >
+                {isBulkSaving
+                  ? "Saving…"
+                  : `Accept all ${cards.length - currentIndex} remaining →`}
+              </button>
+            )}
           </div>
         </div>
       </div>
