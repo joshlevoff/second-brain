@@ -1,8 +1,13 @@
 import { getCards } from "@/app/actions/cards";
+import { getCategories } from "@/app/actions/categories";
 import { getTopics } from "@/app/actions/topics";
 import { KanbanClient } from "./_components/kanban-client";
 
 export default async function CapturePage() {
-  const [cards, topics] = await Promise.all([getCards(), getTopics()]);
-  return <KanbanClient cards={cards} topics={topics} />;
+  const [cards, topics, categories] = await Promise.all([
+    getCards(),
+    getTopics(),
+    getCategories(),
+  ]);
+  return <KanbanClient cards={cards} topics={topics} categories={categories} />;
 }

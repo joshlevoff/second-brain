@@ -104,6 +104,23 @@ export async function updateCardCategory(
     .eq("user_id", user.id);
 }
 
+export async function bulkUpdateCardCategory(
+  cardIds: string[],
+  category: string
+): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const status = category === "Unprocessed" ? "Unprocessed" : "Processed";
+  await supabase
+    .from("cards")
+    .update({ category, status })
+    .in("id", cardIds)
+    .eq("user_id", user.id);
+}
+
 export async function deleteCard(
   id: string
 ): Promise<{ error: string } | { success: true }> {

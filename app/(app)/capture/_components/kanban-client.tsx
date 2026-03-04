@@ -3,6 +3,7 @@
 import { CardModal } from "@/app/(app)/_components/card-modal";
 import { SOURCE_ICONS } from "@/app/(app)/_lib/constants";
 import { createCard, type CardRow } from "@/app/actions/cards";
+import { type CategoryRow } from "@/app/actions/categories";
 import { useRef, useState, useTransition } from "react";
 
 type Topic = { id: string; number: string; title: string; level: number };
@@ -130,11 +131,14 @@ function ListCard({
 export function KanbanClient({
   cards,
   topics,
+  categories,
 }: {
   cards: CardRow[];
   topics: Topic[];
+  categories: CategoryRow[];
 }) {
   const unprocessed = cards.filter((c) => c.status === "Unprocessed");
+  const categoryNames = ["Unprocessed", ...categories.map((c) => c.name)];
 
   const [editingCard, setEditingCard] = useState<ModalCard | null>(null);
   const [newCardOpen, setNewCardOpen] = useState(false);
@@ -235,6 +239,7 @@ export function KanbanClient({
         <CardModal
           card={editingCard}
           topics={topics}
+          categories={categoryNames}
           onClose={() => setEditingCard(null)}
         />
       )}
@@ -242,6 +247,7 @@ export function KanbanClient({
         <CardModal
           card={null}
           topics={topics}
+          categories={categoryNames}
           onClose={() => setNewCardOpen(false)}
         />
       )}

@@ -64,13 +64,16 @@ type CardData = {
 export function CardModal({
   card,
   topics,
+  categories: categoriesProp,
   onClose,
 }: {
   card: CardData | null;
   topics: Topic[];
+  categories?: string[];
   onClose: () => void;
 }) {
   const isNew = !card?.id;
+  const categoryOptions = categoriesProp ?? [...CATEGORIES];
   const [form, setForm] = useState({
     title: card?.title ?? "",
     body: card?.body ?? "",
@@ -248,7 +251,7 @@ export function CardModal({
                 }
                 className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-700 focus:outline-none focus:border-amber-400 transition-colors"
               >
-                {CATEGORIES.map((c) => (
+                {categoryOptions.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
